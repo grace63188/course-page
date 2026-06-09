@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRACE 季度深談日｜場控面板</title>
+<style>
+:root{
+  --noir:#1F1611;--espresso:#2A1E14;--gilded:#D4A569;--gilded-light:#E8C88A;
+  --surface:#2e2318;--surface2:#382b1c;--surface3:#432f1c;
+  --text-primary:#F9F0D6;--text-secondary:#b89a6e;--text-muted:#7a6248;
+  --border:rgba(212,165,105,0.18);--border-strong:rgba(212,165,105,0.4);
+  --active-glow:rgba(212,165,105,0.08);
+  --red:#e05555;--red-bg:rgba(224,85,85,0.12);--red-border:rgba(224,85,85,0.35);
+  --green:#1D9E75;--green-bg:rgba(29,158,117,0.12);--green-border:rgba(29,158,117,0.4);
+  --ph-pre-color:#7aa8d4;--ph-pre-bg:rgba(122,168,212,0.07);--ph-pre-border:rgba(122,168,212,0.25);--ph-pre-line:rgba(122,168,212,0.4);
+  --ph-open-color:#D4A569;--ph-open-bg:rgba(212,165,105,0.07);--ph-open-border:rgba(212,165,105,0.3);--ph-open-line:rgba(212,165,105,0.45);
+  --ph-share-color:#e0a030;--ph-share-bg:rgba(224,160,48,0.07);--ph-share-border:rgba(224,160,48,0.28);--ph-share-line:rgba(224,160,48,0.4);
+  --ph-ex-color:#e07060;--ph-ex-bg:rgba(224,112,96,0.07);--ph-ex-border:rgba(224,112,96,0.28);--ph-ex-line:rgba(224,112,96,0.4);
+  --ph-end-color:#1D9E75;--ph-end-bg:rgba(29,158,117,0.07);--ph-end-border:rgba(29,158,117,0.25);--ph-end-line:rgba(29,158,117,0.35);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--noir);color:var(--text-primary);font-family:'Noto Sans TC',sans-serif;min-height:100vh;}
+
+/* TOPBAR */
+.topbar{background:var(--espresso);border-bottom:1px solid var(--border-strong);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.topbar-title{font-size:13px;font-weight:600;color:var(--gilded);letter-spacing:1px;}
+.topbar-sub{font-size:11px;color:var(--text-secondary);margin-top:1px;}
+.topbar-right{display:flex;gap:7px;}
+
+/* BUTTONS */
+.btn{font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid var(--border-strong);background:transparent;color:var(--text-secondary);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.btn:hover{background:var(--surface2);color:var(--gilded);}
+.btn-gold{background:var(--gilded);color:var(--noir);border-color:var(--gilded);font-weight:600;}
+.btn-gold:hover{background:var(--gilded-light);color:var(--noir);}
+.btn-red{border-color:var(--red-border);color:var(--red);}
+.btn-red:hover{background:var(--red-bg);}
+.btn-green{border-color:var(--green-border);color:var(--green);}
+.btn-green:hover{background:var(--green-bg);}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--espresso);padding:0 20px;overflow-x:auto;}
+.tab{padding:10px 15px;font-size:12px;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;flex-shrink:0;}
+.tab.active{color:var(--gilded);border-bottom-color:var(--gilded);}
+.tab:hover:not(.active){color:var(--text-secondary);}
+
+/* PAGES */
+.page{display:none;padding:16px 20px;max-width:920px;margin:0 auto;}
+.page.active{display:block;}
+
+/* LIVE HEADER */
+.live-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px;}
+.live-clock{font-size:28px;font-weight:700;color:var(--gilded);letter-spacing:2px;font-variant-numeric:tabular-nums;}
+.live-date{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.live-next{font-size:11px;color:var(--text-secondary);text-align:right;line-height:1.5;}
+.live-next strong{color:var(--gilded);display:block;font-size:13px;}
+
+/* MEETING TIMER */
+.meeting-timer-bar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 16px;margin-bottom:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.mt-label{font-size:11px;color:var(--text-secondary);white-space:nowrap;}
+.mt-display{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--gilded);min-width:90px;}
+.mt-adj-input{width:46px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:12px;color:var(--text-primary);text-align:center;font-family:inherit;}
+.mt-adj-input:focus{outline:none;border-color:var(--gilded);}
+
+/* TIMELINE */
+.tl-item{display:flex;gap:0;position:relative;}
+.tl-time{width:72px;flex-shrink:0;text-align:right;padding-right:14px;padding-top:14px;}
+.tl-time-label{font-size:13px;font-variant-numeric:tabular-nums;font-weight:700;}
+.tl-track{display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:18px;}
+.tl-dot{width:10px;height:10px;border-radius:50%;margin-top:18px;flex-shrink:0;}
+.tl-dot.purple{background:#7F77DD;}.tl-dot.teal{background:#1D9E75;}
+.tl-dot.amber{background:#BA7517;}.tl-dot.coral{background:#D85A30;}
+.tl-dot.gray{background:#555;}.tl-dot.gold{background:var(--gilded);}
+.tl-line{width:2px;flex:1;min-height:14px;}
+.tl-content{flex:1;padding:10px 14px 10px 16px;margin-bottom:6px;border-radius:10px;transition:all .3s;border:1px solid transparent;border-left:3px solid transparent;}
+.tl-content.is-past{opacity:.32;}
+.tl-section-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:16px 0 5px 104px;}
+
+/* Phase colors */
+.tl-content[data-phase="pre"]{border-left-color:var(--ph-pre-line);}
+.tl-content[data-phase="open"]{border-left-color:var(--ph-open-line);}
+.tl-content[data-phase="share"]{border-left-color:var(--ph-share-line);}
+.tl-content[data-phase="ex"]{border-left-color:var(--ph-ex-line);}
+.tl-content[data-phase="end"]{border-left-color:var(--ph-end-line);}
+.tl-content[data-phase="pre"].is-active{background:var(--ph-pre-bg);border-color:var(--ph-pre-border);border-left-color:var(--ph-pre-color);}
+.tl-content[data-phase="open"].is-active{background:var(--ph-open-bg);border-color:var(--ph-open-border);border-left-color:var(--ph-open-color);}
+.tl-content[data-phase="share"].is-active{background:var(--ph-share-bg);border-color:var(--ph-share-border);border-left-color:var(--ph-share-color);}
+.tl-content[data-phase="ex"].is-active{background:var(--ph-ex-bg);border-color:var(--ph-ex-border);border-left-color:var(--ph-ex-color);}
+.tl-content[data-phase="end"].is-active{background:var(--ph-end-bg);border-color:var(--ph-end-border);border-left-color:var(--ph-end-color);}
+.tl-section-label[data-phase="pre"]{color:var(--ph-pre-color);}
+.tl-section-label[data-phase="open"]{color:var(--ph-open-color);}
+.tl-section-label[data-phase="share"]{color:var(--ph-share-color);}
+.tl-section-label[data-phase="ex"]{color:var(--ph-ex-color);}
+.tl-section-label[data-phase="end"]{color:var(--ph-end-color);}
+
+/* Node header */
+.node-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:4px;}
+.node-header-left{flex:1;min-width:0;}
+.tl-title{font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:2px;}
+.tl-dur{font-size:11px;color:var(--text-muted);margin-bottom:8px;letter-spacing:.3px;}
+.tl-bullets{font-size:12px;color:var(--text-secondary);line-height:1.9;padding-left:14px;margin-bottom:8px;}
+.tl-bullets li{margin-bottom:1px;}
+.node-done-btn{font-size:11px;font-weight:700;padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;margin-top:2px;}
+.node-done-btn:hover{border-color:var(--green);color:var(--green);}
+.node-done-btn.active{background:rgba(29,158,117,0.15);border-color:var(--green);color:var(--green);}
+.tl-content.node-completed{opacity:0.38;}
+
+/* BADGES */
+.action-badges{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;}
+.abadge{font-size:11px;font-weight:600;padding:4px 10px;border-radius:5px;}
+.ab-announce{background:rgba(122,168,212,.18);color:#7aa8d4;border:1px solid rgba(122,168,212,.3);}
+.ab-host{background:rgba(212,165,105,.18);color:var(--gilded);border:1px solid rgba(212,165,105,.3);}
+.ab-chat{background:rgba(125,186,138,.18);color:#7dba8a;border:1px solid rgba(125,186,138,.3);}
+.ab-watch{background:rgba(136,135,128,.13);color:#888780;border:1px solid rgba(136,135,128,.25);}
+.ab-timer-badge{background:rgba(224,138,74,.15);color:#e08a4a;border:1px solid rgba(224,138,74,.28);}
+.ab-royal{background:rgba(127,119,221,.18);color:#9d97e8;border:1px solid rgba(127,119,221,.3);}
+.ab-photo{background:rgba(29,158,117,.15);color:#1D9E75;border:1px solid rgba(29,158,117,.28);}
+
+/* SEGMENT TIMER */
+.seg-timer{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-top:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.seg-timer.running{border-color:rgba(212,165,105,.5);}
+.seg-timer.overtime{border-color:var(--red-border);background:var(--red-bg);}
+.seg-time-display{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--gilded);min-width:72px;}
+.seg-timer.overtime .seg-time-display{color:var(--red);}
+.seg-timer-label{font-size:11px;color:var(--text-secondary);}
+.seg-timer-limit{font-size:10px;color:var(--text-muted);margin-top:1px;}
+.seg-timer.overtime .seg-timer-limit{color:var(--red);}
+.seg-timer-controls{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.seg-adj{width:52px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px;color:var(--text-primary);text-align:center;font-family:inherit;}
+.seg-adj:focus{outline:none;border-color:var(--gilded);}
+.seg-adj-label{font-size:10px;color:var(--text-muted);}
+
+/* ACTION BLOCKS */
+.action-blocks{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+.action-block{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface);}
+.action-block-header{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;cursor:pointer;user-select:none;gap:8px;}
+.action-block-header:hover{background:var(--surface2);}
+.abl{font-size:12px;font-weight:600;flex:1;}
+.abl-host{color:var(--gilded);}.abl-chat{color:#7dba8a;}.abl-copy{color:#7aa8d4;}.abl-royal{color:#9d97e8;}
+.ach{font-size:9px;color:var(--text-muted);transition:transform .2s;flex-shrink:0;pointer-events:none;}
+.action-block.open .ach{transform:rotate(180deg);}
+.action-body{display:none;padding:0 12px 12px;}
+.action-block.open .action-body{display:block;}
+.action-text{font-size:12px;color:var(--text-secondary);line-height:1.9;white-space:pre-wrap;border:1px solid var(--border);border-radius:6px;padding:12px 14px;background:var(--espresso);margin-top:8px;}
+.copy-btn{margin-top:8px;font-size:12px;padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:transparent;color:var(--gilded);cursor:pointer;transition:all .15s;width:100%;}
+.copy-btn:hover{background:var(--gilded);color:var(--noir);font-weight:600;}
+.copy-btn.copied,.exposed-copy-btn.copied,.exposed-chat-btn.copied,.exposed-royal-btn.copied{background:var(--green);border-color:var(--green);color:#fff;}
+.done-btn{font-size:11px;font-weight:700;padding:4px 9px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;transition:all .15s;flex-shrink:0;}
+.done-btn:hover{border-color:var(--green);color:var(--green);}
+.done-btn.done-active{background:rgba(29,158,117,0.15);border-color:var(--green);color:var(--green);}
+
+/* Exposed blocks */
+.action-block.exposed{border-color:rgba(122,168,212,0.3);background:rgba(122,168,212,0.05);}
+.action-block.exposed-chat{border-color:rgba(125,186,138,0.3);background:rgba(125,186,138,0.05);}
+.action-block.exposed-royal{border-color:rgba(127,119,221,0.3);background:rgba(127,119,221,0.05);}
+.exposed-label{font-size:12px;font-weight:600;flex:1;}
+.exposed-copy-btn{font-size:12px;font-weight:600;padding:5px 14px;border-radius:6px;border:1px solid rgba(122,168,212,0.4);background:rgba(122,168,212,0.1);color:#7aa8d4;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0;}
+.exposed-copy-btn:hover{background:#7aa8d4;color:var(--noir);}
+.exposed-chat-btn{font-size:12px;font-weight:600;padding:5px 14px;border-radius:6px;border:1px solid rgba(125,186,138,0.4);background:rgba(125,186,138,0.1);color:#7dba8a;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0;}
+.exposed-chat-btn:hover{background:#7dba8a;color:var(--noir);}
+.exposed-royal-btn{font-size:12px;font-weight:600;padding:5px 14px;border-radius:6px;border:1px solid rgba(127,119,221,0.4);background:rgba(127,119,221,0.1);color:#9d97e8;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0;}
+.exposed-royal-btn:hover{background:#9d97e8;color:var(--noir);}
+
+/* CHECKLIST */
+.check-group{margin-bottom:22px;}
+.check-group-title{font-size:11px;font-weight:600;color:var(--gilded);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:9px;}
+.check-item{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);margin-bottom:5px;cursor:pointer;transition:all .15s;}
+.check-item:hover{border-color:var(--border-strong);}
+.check-item.done{opacity:.45;}
+.check-box{width:16px;height:16px;border-radius:4px;border:1px solid var(--border-strong);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;}
+.check-item.done .check-box{background:var(--gilded);border-color:var(--gilded);}
+.check-tick{font-size:10px;color:var(--noir);display:none;}
+.check-item.done .check-tick{display:block;}
+.check-text{font-size:12px;color:var(--text-secondary);line-height:1.5;}
+.check-item.done .check-text{text-decoration:line-through;color:var(--text-muted);}
+.check-time{font-size:10px;color:var(--gilded);font-weight:600;margin-bottom:2px;}
+
+/* EDIT */
+.edit-section{margin-bottom:26px;}
+.edit-section-title{font-size:11px;font-weight:600;color:var(--gilded);letter-spacing:1px;text-transform:uppercase;margin-bottom:11px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.edit-item{margin-bottom:14px;}
+.edit-label{font-size:11px;color:var(--text-secondary);margin-bottom:5px;}
+.edit-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--text-primary);font-family:inherit;resize:vertical;min-height:36px;transition:border .15s;line-height:1.7;}
+.edit-input:focus{outline:none;border-color:var(--gilded);}
+.edit-input.tall{min-height:80px;}
+.save-bar{position:sticky;bottom:0;background:var(--espresso);border-top:1px solid var(--border-strong);padding:11px 20px;display:flex;justify-content:flex-end;gap:8px;z-index:50;}
+
+/* SETUP */
+.setup-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;}
+.setup-card-title{font-size:13px;font-weight:600;color:var(--gilded);margin-bottom:13px;}
+.setup-row{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+@media(max-width:560px){.setup-row{grid-template-columns:1fr;}}
+.session-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);margin-bottom:6px;}
+.sr-name{font-size:12px;font-weight:600;color:var(--text-secondary);}
+.sr-name.cur{color:var(--gilded);}
+.sr-sub{font-size:11px;color:var(--text-muted);margin-top:1px;}
+
+/* ATTENDANCE */
+.att-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+.att-stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.att-stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 18px;text-align:center;flex:1;min-width:100px;}
+.att-stat-num{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;margin-bottom:2px;}
+.att-stat-label{font-size:11px;color:var(--text-muted);}
+.att-stat.total .att-stat-num{color:var(--gilded);}
+.att-stat.present .att-stat-num{color:var(--green);}
+.att-stat.absent .att-stat-num{color:var(--red);}
+.att-stat.spoke .att-stat-num{color:#9d97e8;}
+.att-stat.egg .att-stat-num{color:#e0a030;}
+.att-table{width:100%;}
+.att-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);margin-bottom:5px;}
+.att-row.present-row{border-color:rgba(29,158,117,0.25);background:rgba(29,158,117,0.04);}
+.att-row.absent-row{opacity:0.45;}
+.att-name{font-size:16px;font-weight:700;color:var(--text-primary);flex:1;}
+.att-account{font-size:11px;color:var(--text-muted);flex:1;}
+.att-btns{display:flex;gap:5px;flex-shrink:0;}
+.att-btn{font-size:11px;padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:transparent;cursor:pointer;transition:all .15s;font-weight:600;}
+.att-btn.present{color:var(--green);border-color:var(--green-border);}
+.att-btn.present.active{background:rgba(29,158,117,0.2);}
+.att-btn.absent{color:var(--red);border-color:var(--red-border);}
+.att-btn.absent.active{background:var(--red-bg);}
+.att-btn.spoke{color:#9d97e8;border-color:rgba(157,151,232,0.4);}
+.att-btn.spoke.active{background:rgba(157,151,232,0.15);}
+.att-search{width:100%;background:var(--surface2);border:1px solid var(--border-strong);border-radius:8px;padding:9px 14px;font-size:14px;color:var(--text-primary);font-family:inherit;transition:border .15s;}
+.att-search:focus{outline:none;border-color:var(--gilded);}
+.att-search-wrap{position:relative;margin-bottom:12px;}
+.att-search-hint{font-size:12px;color:var(--text-muted);margin-top:5px;min-height:18px;transition:color .2s;}
+.att-row.highlight{border-color:var(--gilded);background:rgba(212,165,105,0.1);}
+.att-paste-area{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text-primary);font-family:inherit;resize:vertical;min-height:80px;line-height:1.7;}
+.att-paste-area:focus{outline:none;border-color:var(--gilded);}
+.egg-input{width:80px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:14px;font-weight:700;color:var(--gilded);text-align:center;font-family:inherit;}
+.egg-input:focus{outline:none;border-color:var(--gilded);}
+
+/* REPORT */
+.report-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;}
+.report-section-title{font-size:12px;font-weight:600;color:var(--gilded);letter-spacing:1px;text-transform:uppercase;margin-bottom:16px;}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:16px;}
+.kpi-card{background:var(--espresso);border:1px solid var(--border);border-radius:10px;padding:14px 16px;text-align:center;}
+.kpi-num{font-size:32px;font-weight:700;font-variant-numeric:tabular-nums;margin-bottom:4px;}
+.kpi-label{font-size:11px;color:var(--text-muted);}
+.kpi-card.k-total .kpi-num{color:var(--gilded);}
+.kpi-card.k-present .kpi-num{color:var(--green);}
+.kpi-card.k-absent .kpi-num{color:var(--red);}
+.kpi-card.k-spoke .kpi-num{color:#9d97e8;}
+.kpi-card.k-egg .kpi-num{color:#e0a030;}
+.kpi-card.k-rate .kpi-num{color:var(--ph-share-color);}
+.bar-wrap{margin-bottom:10px;}
+.bar-label-row{display:flex;justify-content:space-between;font-size:11px;color:var(--text-secondary);margin-bottom:4px;}
+.bar-track{height:10px;background:var(--surface2);border-radius:5px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:5px;transition:width .6s ease;}
+.bar-fill.present{background:var(--green);}
+.bar-fill.spoke{background:#9d97e8;}
+.bar-fill.egg{background:#e0a030;}
+.notes-input{width:100%;background:var(--espresso);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text-primary);font-family:inherit;resize:vertical;min-height:70px;line-height:1.7;}
+.notes-input:focus{outline:none;border-color:var(--gilded);}
+.absent-list{font-size:12px;color:var(--text-secondary);line-height:2;}
+
+/* MISC */
+.badge-active{display:inline-block;background:var(--gilded);color:var(--noir);font-size:11px;font-weight:700;padding:2px 10px;border-radius:8px;margin-left:8px;animation:pulse 1.5s ease-in-out infinite;vertical-align:middle;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.overtime-flash{animation:oflash 1s ease-in-out infinite;}
+@keyframes oflash{0%,100%{opacity:1}50%{opacity:.5}}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--gilded);color:var(--noir);padding:7px 20px;border-radius:20px;font-size:12px;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+.no-session{text-align:center;padding:50px 20px;color:var(--text-muted);}
+.section-tip{font-size:11px;color:var(--text-muted);margin-bottom:12px;line-height:1.6;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <div class="topbar-title">G.R.A.C.E. ｜ 場控面板</div>
+    <div class="topbar-sub" id="topbar-sub">載入中…</div>
+  </div>
+  <div class="topbar-right">
+    <button class="btn" onclick="exportData()">匯出備份</button>
+    <button class="btn" onclick="document.getElementById('import-file').click()">匯入</button>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+    <button class="btn btn-gold" onclick="switchTab('setup')">＋ 新增場次</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('live')" id="tab-live">📍 即時場控</div>
+  <div class="tab" onclick="switchTab('attendance')" id="tab-attendance">📋 點名表</div>
+  <div class="tab" onclick="switchTab('report')" id="tab-report">📊 活動總覽</div>
+  <div class="tab" onclick="switchTab('checklist')" id="tab-checklist">✅ 前後置清單</div>
+  <div class="tab" onclick="switchTab('edit')" id="tab-edit">✏️ 編輯口稿公告</div>
+  <div class="tab" onclick="switchTab('setup')" id="tab-setup">⚙️ 場次設定</div>
+</div>
+
+<!-- LIVE -->
+<div class="page active" id="page-live">
+  <div class="live-header">
+    <div>
+      <div class="live-clock" id="live-clock">--:--:--</div>
+      <div class="live-date" id="live-date"></div>
+    </div>
+    <div class="live-next" id="live-next"></div>
+  </div>
+  <div class="meeting-timer-bar">
+    <div><div class="mt-label">全場會議計時</div><div class="mt-display" id="mt-display">00:00:00</div></div>
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <span style="font-size:11px;color:var(--text-muted)">手動從</span>
+      <input class="mt-adj-input" id="mt-adj-h" type="number" min="0" max="23" placeholder="時">
+      <span style="color:var(--text-muted);font-size:12px">:</span>
+      <input class="mt-adj-input" id="mt-adj-m" type="number" min="0" max="59" placeholder="分">
+      <span style="font-size:11px;color:var(--text-muted)">開始</span>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-green" id="mt-start-btn" onclick="mtStart()">開始計時</button>
+      <button class="btn" onclick="mtSetManual()">套用時間</button>
+      <button class="btn btn-red" onclick="mtReset()">重置</button>
+    </div>
+  </div>
+  <div id="timeline-container"></div>
+</div>
+
+<!-- ATTENDANCE -->
+<div class="page" id="page-attendance">
+  <div class="att-stats" id="att-stats"></div>
+  <div class="att-search-wrap">
+    <input class="att-search" id="att-search" type="text" placeholder="🔍 輸入姓名 → Enter 標記出席，可連續輸入" oninput="searchAndMark(this.value)" onkeydown="searchKeydown(event)" autocomplete="off">
+    <div class="att-search-hint" id="att-search-hint"></div>
+  </div>
+  <div style="margin-bottom:14px">
+    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:8px">
+      <div style="flex:1;min-width:200px">
+        <div class="edit-label" style="margin-bottom:5px">貼上名單（每行一筆：姓名 帳號）</div>
+        <textarea class="att-paste-area" id="att-paste" placeholder="田慧琳 grace001&#10;賴又嘉 grace002&#10;..."></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-gold" onclick="parseAttendance()">匯入名單</button>
+      <button class="btn" onclick="markAllPresent()">全部出席</button>
+      <button class="btn btn-red" onclick="clearAttendance()">清除名單</button>
+    </div>
+  </div>
+  <div id="att-table-container"></div>
+</div>
+
+<!-- REPORT -->
+<div class="page" id="page-report">
+  <div class="report-section">
+    <div class="report-section-title">活動數據總覽</div>
+    <div class="kpi-grid" id="report-kpi"></div>
+    <div id="report-bars"></div>
+  </div>
+  <div class="report-section">
+    <div class="report-section-title">缺席名單</div>
+    <div class="absent-list" id="report-absent">（尚無資料）</div>
+  </div>
+  <div class="report-section">
+    <div class="report-section-title">彩蛋下單人數</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <input class="egg-input" id="egg-count" type="number" min="0" value="0" oninput="saveEggCount()">
+      <span style="font-size:12px;color:var(--text-muted)">人下單</span>
+    </div>
+  </div>
+  <div class="report-section">
+    <div class="report-section-title">助教備註</div>
+    <textarea class="notes-input" id="report-notes" placeholder="記錄本場特殊狀況、校長交辦事項、下次改進點…" oninput="saveNotes()"></textarea>
+  </div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+    <button class="btn btn-gold" onclick="exportReport()">匯出校長報告（PDF）</button>
+  </div>
+</div>
+
+<!-- CHECKLIST -->
+<div class="page" id="page-checklist">
+  <div id="checklist-container"></div>
+</div>
+
+<!-- EDIT -->
+<div class="page" id="page-edit">
+  <div style="font-size:12px;color:var(--text-muted);margin-bottom:18px">目前場次：<span id="edit-session-name" style="color:var(--gilded)"></span></div>
+  <div id="edit-container"></div>
+  <div class="save-bar">
+    <button class="btn" onclick="switchTab('live')">取消</button>
+    <button class="btn btn-gold" onclick="saveEdits()">儲存</button>
+  </div>
+</div>
+
+<!-- SETUP -->
+<div class="page" id="page-setup">
+  <div class="setup-card">
+    <div class="setup-card-title">新增場次</div>
+    <div class="setup-row">
+      <div class="edit-item"><div class="edit-label">場次名稱</div><input class="edit-input" id="s-name" placeholder="季度深談日・情緒的訊號學"></div>
+      <div class="edit-item"><div class="edit-label">活動主題</div><input class="edit-input" id="s-theme" placeholder="情緒的訊號學"></div>
+      <div class="edit-item"><div class="edit-label">日期</div><input class="edit-input" id="s-date" type="date"></div>
+      <div class="edit-item"><div class="edit-label">主講者（逗號分隔）</div><input class="edit-input" id="s-speakers" placeholder="倪婍瑄,朱映蓉,黃又庭"></div>
+    </div>
+    <div class="edit-item" style="margin-top:6px">
+      <div class="edit-label">主題對應（格式：姓名:主題，逗號分隔）</div>
+      <input class="edit-input" id="s-topics" placeholder="倪婍瑄:內耗,朱映蓉:自我懷疑,黃又庭:憤怒">
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:4px">
+      <button class="btn btn-gold" onclick="createSession()">建立場次</button>
+    </div>
+  </div>
+  <div id="session-list"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════
+// STATE
+// ═══════════════════════════════════
+let state={sessions:[],currentId:null};
+const KEY='grace_livecontrol_v4';
+const save=()=>localStorage.setItem(KEY,JSON.stringify(state));
+const load=()=>{
+  try{
+    // Try current key first
+    let r=localStorage.getItem(KEY);
+    // Migrate from old keys if needed
+    if(!r){
+      r=localStorage.getItem('grace_livecontrol_v3')||
+        localStorage.getItem('grace_livecontrol_v2')||
+        localStorage.getItem('grace_livecontrol_v1');
+    }
+    if(r){
+      const parsed=JSON.parse(r);
+      // Migrate: ensure all sessions have attendance field
+      if(parsed.sessions){
+        parsed.sessions.forEach(s=>{
+          if(!s.attendance)s.attendance={members:[],eggCount:0,notes:''};
+          if(!s.checkState)s.checkState={};
+        });
+      }
+      state=parsed;
+      localStorage.setItem(KEY,JSON.stringify(state));
+    }
+  }catch(e){}
+};
+const cur=()=>state.sessions.find(s=>s.id===state.currentId)||null;
+
+// ═══════════════════════════════════
+// MEETING TIMER
+// ═══════════════════════════════════
+let mtInterval=null,mtStartEpoch=null;
+const pad=n=>String(n).padStart(2,'0');
+
+function mtTick(){
+  if(mtStartEpoch===null)return;
+  const e=Math.floor((Date.now()-mtStartEpoch)/1000);
+  document.getElementById('mt-display').textContent=`${pad(Math.floor(e/3600))}:${pad(Math.floor(e%3600/60))}:${pad(e%60)}`;
+}
+function mtStart(){
+  if(mtInterval)return;
+  mtStartEpoch=Date.now();
+  mtInterval=setInterval(mtTick,1000);
+  const b=document.getElementById('mt-start-btn');
+  b.textContent='計時中…';b.disabled=true;
+}
+function mtSetManual(){
+  const h=parseInt(document.getElementById('mt-adj-h').value)||0;
+  const m=parseInt(document.getElementById('mt-adj-m').value)||0;
+  const now=new Date(),start=new Date(now);
+  start.setHours(h,m,0,0);
+  if(start>now)start.setDate(start.getDate()-1);
+  mtStartEpoch=start.getTime();
+  if(!mtInterval){mtInterval=setInterval(mtTick,1000);const b=document.getElementById('mt-start-btn');b.textContent='計時中…';b.disabled=true;}
+  mtTick();showToast(`已從 ${pad(h)}:${pad(m)} 開始計算`);
+}
+function mtReset(){
+  clearInterval(mtInterval);mtInterval=null;mtStartEpoch=null;
+  document.getElementById('mt-display').textContent='00:00:00';
+  const b=document.getElementById('mt-start-btn');b.textContent='開始計時';b.disabled=false;
+}
+
+// ═══════════════════════════════════
+// SEGMENT TIMERS
+// ═══════════════════════════════════
+const segTimers={};
+
+function segStart(nodeId){
+  if(segTimers[nodeId]?.interval)return;
+  const s=cur();if(!s)return;
+  const node=s.nodes.find(n=>n.id===nodeId);if(!node)return;
+  const limitSec=(node.timerMin||10)*60;
+  if(!segTimers[nodeId])segTimers[nodeId]={startEpoch:Date.now(),limitSec,interval:null,pausedAt:0};
+  else segTimers[nodeId].startEpoch=Date.now()-(segTimers[nodeId].pausedAt||0);
+  segTimers[nodeId].interval=setInterval(()=>segTick(nodeId),1000);
+  segTick(nodeId);
+  const sb=document.getElementById(`st-start-${nodeId}`),pb=document.getElementById(`st-stop-${nodeId}`);
+  if(sb){sb.textContent='計時中…';sb.disabled=true;}
+  if(pb)pb.style.display='inline-block';
+}
+function segStop(nodeId){
+  const t=segTimers[nodeId];if(!t)return;
+  clearInterval(t.interval);t.interval=null;
+  t.pausedAt=Date.now()-t.startEpoch;
+  const sb=document.getElementById(`st-start-${nodeId}`),pb=document.getElementById(`st-stop-${nodeId}`);
+  if(sb){sb.textContent='繼續';sb.disabled=false;}
+  if(pb)pb.style.display='none';
+}
+function segSetManual(nodeId){
+  const adjEl=document.getElementById(`st-adj-${nodeId}`);if(!adjEl)return;
+  const parts=adjEl.value.split(':').map(x=>parseInt(x)||0);
+  let elapsed=parts.length>=2?parts[0]*60+parts[1]:parts[0]*60;
+  const s=cur();const node=s?.nodes.find(n=>n.id===nodeId);
+  segTimers[nodeId]={startEpoch:Date.now()-elapsed*1000,limitSec:(node?.timerMin||10)*60,interval:null,pausedAt:0};
+  if(!segTimers[nodeId].interval){
+    segTimers[nodeId].interval=setInterval(()=>segTick(nodeId),1000);
+    const sb=document.getElementById(`st-start-${nodeId}`),pb=document.getElementById(`st-stop-${nodeId}`);
+    if(sb){sb.textContent='計時中…';sb.disabled=true;}
+    if(pb)pb.style.display='inline-block';
+  }
+  segTick(nodeId);showToast('已套用手動時間');
+}
+function segReset(nodeId){
+  if(segTimers[nodeId]?.interval)clearInterval(segTimers[nodeId].interval);
+  delete segTimers[nodeId];
+  const d=document.getElementById(`st-disp-${nodeId}`);
+  const box=document.getElementById(`st-box-${nodeId}`);
+  const sb=document.getElementById(`st-start-${nodeId}`);
+  const pb=document.getElementById(`st-stop-${nodeId}`);
+  const lim=document.getElementById(`st-limit-${nodeId}`);
+  if(d){d.textContent='00:00';d.style.color='var(--gilded)';}
+  if(box)box.classList.remove('running','overtime');
+  if(sb){sb.textContent='開始';sb.disabled=false;}
+  if(pb)pb.style.display='none';
+  if(lim)lim.classList.remove('overtime-flash');
+}
+function segTick(nodeId){
+  const t=segTimers[nodeId];if(!t)return;
+  const el=Math.floor((Date.now()-t.startEpoch)/1000);
+  const m=Math.floor(el/60),s=el%60;
+  const d=document.getElementById(`st-disp-${nodeId}`);
+  const box=document.getElementById(`st-box-${nodeId}`);
+  const lim=document.getElementById(`st-limit-${nodeId}`);
+  if(!d){clearInterval(t.interval);return;}
+  d.textContent=`${pad(m)}:${pad(s)}`;
+  const over=el>t.limitSec;
+  d.style.color=over?'var(--red)':'var(--gilded)';
+  if(box){box.classList.toggle('running',!over);box.classList.toggle('overtime',over);}
+  if(lim)lim.classList.toggle('overtime-flash',over);
+}
+
+// ═══════════════════════════════════
+// BLOCK TEXT MAP + COPY
+// ═══════════════════════════════════
+const blockTextMap={};
+
+function copyBlock(uid,btn){
+  const txt=blockTextMap[uid]||'';
+  if(!txt){showToast('找不到文字');return;}
+  const orig=btn.textContent;
+  navigator.clipboard.writeText(txt).then(()=>{
+    btn.textContent='✓ 已複製';btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent=orig;btn.classList.remove('copied');},1800);
+    showToast('已複製到剪貼簿');
+  }).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=txt;ta.style.cssText='position:fixed;opacity:0';
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    btn.textContent='✓ 已複製';btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent=orig;btn.classList.remove('copied');},1800);
+    showToast('已複製到剪貼簿');
+  });
+}
+
+// ═══════════════════════════════════
+// DONE / CHECK STATE
+// ═══════════════════════════════════
+function toggleDone(doneKey){
+  const s=cur();if(!s)return;
+  s.checkState[doneKey]=!s.checkState[doneKey];
+  autoCheckNode(s,doneKey);
+  save();renderTimeline();
+}
+function toggleNodeDone(nodeId){
+  const s=cur();if(!s)return;
+  const key=`node_done_${nodeId}`;
+  s.checkState[key]=!s.checkState[key];
+  save();renderTimeline();
+}
+function autoCheckNode(s,changedKey){
+  const match=changedKey.match(/^done_(.+)_(\d+)$/);
+  if(!match)return;
+  const nodeId=match[1];
+  const node=s.nodes.find(n=>n.id===nodeId);
+  if(!node||!node.blocks.length)return;
+  const allDone=node.blocks.every((_,bi)=>s.checkState[`done_${nodeId}_${bi}`]);
+  if(allDone)s.checkState[`node_done_${nodeId}`]=true;
+}
+
+// ═══════════════════════════════════
+// ATTENDANCE
+// ═══════════════════════════════════
+function getAttData(){
+  const s=cur();return s?.attendance||{members:[],eggCount:0,notes:''};
+}
+function parseAttendance(){
+  const s=cur();if(!s)return;
+  const raw=document.getElementById('att-paste').value.trim();
+  if(!raw){showToast('請先貼上名單');return;}
+  const lines=raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  const members=lines.map(line=>{
+    const parts=line.split(/\s+/);
+    const name=parts[0]||'';
+    const account=parts.slice(1).join(' ')||'';
+    return{name,account,status:'pending',spoke:false};
+  });
+  if(!s.attendance)s.attendance={members:[],eggCount:0,notes:''};
+  s.attendance.members=members;
+  save();renderAttendance();renderReport();
+  document.getElementById('att-paste').value='';
+  showToast(`已匯入 ${members.length} 位學員`);
+}
+function markAllPresent(){
+  const s=cur();if(!s||!s.attendance)return;
+  s.attendance.members.forEach(m=>m.status='present');
+  save();renderAttendance();renderReport();
+}
+function clearAttendance(){
+  if(!confirm('確定清除名單？'))return;
+  const s=cur();if(!s)return;
+  if(s.attendance)s.attendance.members=[];
+  save();renderAttendance();renderReport();
+}
+function setStatus(idx,status){
+  const s=cur();if(!s||!s.attendance)return;
+  const m=s.attendance.members[idx];if(!m)return;
+  m.status=m.status===status?'pending':status;
+  save();renderAttendance();renderReport();
+}
+function toggleSpoke(idx){
+  const s=cur();if(!s||!s.attendance)return;
+  const m=s.attendance.members[idx];if(!m)return;
+  m.spoke=!m.spoke;
+  save();renderAttendance();renderReport();
+}
+function searchKeydown(e){
+  if(e.key!=='Enter')return;
+  const val=e.target.value.trim();
+  if(!val)return;
+  const s=cur();if(!s||!s.attendance)return;
+  const members=s.attendance.members;
+  const matches=members.map((m,i)=>({m,i})).filter(({m})=>m.name.includes(val));
+  if(matches.length===1){
+    const {m,i}=matches[0];
+    m.status='present';
+    save();renderAttendance();
+    // Clear input and show confirmation
+    e.target.value='';
+    const hint=document.getElementById('att-search-hint');
+    if(hint){hint.textContent='✓ 已標記「'+m.name+'」出席，繼續輸入下一位';hint.style.color='var(--green)';}
+    setTimeout(()=>{const h=document.getElementById('att-search-hint');if(h){h.textContent='';h.style.color='';}},2000);
+  } else if(matches.length===0){
+    const hint=document.getElementById('att-search-hint');
+    if(hint){hint.textContent='找不到「'+val+'」，請確認姓名';hint.style.color='var(--red)';}
+  } else {
+    const hint=document.getElementById('att-search-hint');
+    if(hint){hint.textContent='找到 '+matches.length+' 筆（'+matches.map(x=>x.m.name).join('、')+'），請輸入完整姓名';hint.style.color='var(--gilded)';}
+  }
+}
+
+function searchAndMark(val){
+  const s=cur();if(!s||!s.attendance)return;
+  const hint=document.getElementById('att-search-hint');
+  // Remove previous highlights
+  document.querySelectorAll('.att-row.highlight').forEach(el=>el.classList.remove('highlight'));
+  if(!val.trim()){if(hint)hint.textContent='';return;}
+  const q=val.trim();
+  const members=s.attendance.members;
+  // Find matches
+  const matches=members.map((m,i)=>({m,i})).filter(({m})=>m.name.includes(q));
+  if(!matches.length){
+    if(hint)hint.textContent='找不到「'+q+'」';
+    return;
+  }
+  // Highlight and scroll to first match
+  matches.forEach(({i})=>{
+    const row=document.getElementById('att-row-'+i);
+    if(row)row.classList.add('highlight');
+  });
+  const firstRow=document.getElementById('att-row-'+matches[0].i);
+  if(firstRow)firstRow.scrollIntoView({behavior:'smooth',block:'center'});
+  // If exact match (one person), auto-mark present
+  if(matches.length===1){
+    const {m,i}=matches[0];
+    if(m.status!=='present'){
+      m.status='present';
+      save();
+      renderAttendance();
+      // Re-apply search highlight after re-render
+      setTimeout(()=>{
+        const row=document.getElementById('att-row-'+i);
+        if(row){row.classList.add('highlight');row.scrollIntoView({behavior:'smooth',block:'center'});}
+        const h=document.getElementById('att-search-hint');
+        if(h)h.textContent='✓ 已標記「'+m.name+'」出席';
+      },50);
+    } else {
+      if(hint)hint.textContent='「'+m.name+'」已出席 ✓';
+    }
+  } else {
+    if(hint)hint.textContent='找到 '+matches.length+' 筆，請繼續輸入或手動點選';
+  }
+}
+
+function saveEggCount(){
+  const s=cur();if(!s)return;
+  if(!s.attendance)s.attendance={members:[],eggCount:0,notes:''};
+  s.attendance.eggCount=parseInt(document.getElementById('egg-count').value)||0;
+  save();renderReport();
+}
+function saveNotes(){
+  const s=cur();if(!s)return;
+  if(!s.attendance)s.attendance={members:[],eggCount:0,notes:''};
+  s.attendance.notes=document.getElementById('report-notes').value;
+  save();
+}
+
+function renderAttendance(){
+  const s=cur();
+  const c=document.getElementById('att-table-container');
+  const sc=document.getElementById('att-stats');
+  if(!s||!s.attendance||!s.attendance.members.length){
+    c.innerHTML='<div style="font-size:12px;color:var(--text-muted);padding:20px 0">尚未匯入名單。貼上學員名單後按「匯入名單」。</div>';
+    sc.innerHTML='';return;
+  }
+  const members=s.attendance.members;
+  const total=members.length;
+  const present=members.filter(m=>m.status==='present').length;
+  const absent=members.filter(m=>m.status==='absent').length;
+  const spoke=members.filter(m=>m.spoke).length;
+  sc.innerHTML=`
+    <div class="att-stat total"><div class="att-stat-num">${total}</div><div class="att-stat-label">總報名</div></div>
+    <div class="att-stat present"><div class="att-stat-num">${present}</div><div class="att-stat-label">出席</div></div>
+    <div class="att-stat absent"><div class="att-stat-num">${absent}</div><div class="att-stat-label">缺席</div></div>
+    <div class="att-stat spoke"><div class="att-stat-num">${spoke}</div><div class="att-stat-label">發言交流</div></div>`;
+  c.innerHTML='<div class="att-table">'+members.map((m,i)=>`
+    <div class="att-row ${m.status==='present'?'present-row':m.status==='absent'?'absent-row':''}" id="att-row-${i}">
+      <div style="font-size:12px;color:var(--text-muted);min-width:28px;flex-shrink:0">${i+1}.</div>
+      <div class="att-name">${esc(m.name)}</div>
+      <div class="att-account">${esc(m.account)}</div>
+      <div class="att-btns">
+        <button class="att-btn present${m.status==='present'?' active':''}" onclick="setStatus(${i},'present')">出席</button>
+        <button class="att-btn absent${m.status==='absent'?' active':''}" onclick="setStatus(${i},'absent')">缺席</button>
+        <button class="att-btn spoke${m.spoke?' active':''}" onclick="toggleSpoke(${i})">發言</button>
+      </div>
+    </div>`).join('')+'</div>';
+}
+
+// ═══════════════════════════════════
+// REPORT
+// ═══════════════════════════════════
+function renderReport(){
+  const s=cur();
+  if(!s){document.getElementById('report-kpi').innerHTML='<div style="color:var(--text-muted);font-size:12px">請先建立場次</div>';return;}
+  const att=s.attendance||{members:[],eggCount:0,notes:''};
+  const members=att.members;
+  const total=members.length;
+  const present=members.filter(m=>m.status==='present').length;
+  const absent=members.filter(m=>m.status==='absent').length;
+  const spoke=members.filter(m=>m.spoke).length;
+  const egg=att.eggCount||0;
+  const attRate=total?Math.round(present/total*100):0;
+  const spokeRate=present?Math.round(spoke/present*100):0;
+  const eggRate=present?Math.round(egg/present*100):0;
+
+  document.getElementById('report-kpi').innerHTML=`
+    <div class="kpi-card k-total"><div class="kpi-num">${total}</div><div class="kpi-label">總報名人數</div></div>
+    <div class="kpi-card k-present"><div class="kpi-num">${present}</div><div class="kpi-label">實際出席</div></div>
+    <div class="kpi-card k-absent"><div class="kpi-num">${absent}</div><div class="kpi-label">缺席</div></div>
+    <div class="kpi-card k-spoke"><div class="kpi-num">${spoke}</div><div class="kpi-label">交流發言</div></div>
+    <div class="kpi-card k-egg"><div class="kpi-num">${egg}</div><div class="kpi-label">彩蛋下單</div></div>
+    <div class="kpi-card k-rate"><div class="kpi-num">${attRate}%</div><div class="kpi-label">出席率</div></div>`;
+
+  document.getElementById('report-bars').innerHTML=`
+    <div class="bar-wrap"><div class="bar-label-row"><span>出席率</span><span>${attRate}%（${present}／${total}）</span></div><div class="bar-track"><div class="bar-fill present" style="width:${attRate}%"></div></div></div>
+    <div class="bar-wrap"><div class="bar-label-row"><span>交流發言率（佔出席）</span><span>${spokeRate}%（${spoke}／${present||1}）</span></div><div class="bar-track"><div class="bar-fill spoke" style="width:${spokeRate}%"></div></div></div>
+    <div class="bar-wrap"><div class="bar-label-row"><span>彩蛋轉換率（佔出席）</span><span>${eggRate}%（${egg}／${present||1}）</span></div><div class="bar-track"><div class="bar-fill egg" style="width:${eggRate}%"></div></div></div>`;
+
+  const absentList=members.filter(m=>m.status==='absent').map(m=>m.name).join('、');
+  document.getElementById('report-absent').textContent=absentList||'（無缺席）';
+
+  const eggEl=document.getElementById('egg-count');
+  if(eggEl&&eggEl!==document.activeElement)eggEl.value=egg;
+  const notesEl=document.getElementById('report-notes');
+  if(notesEl&&notesEl!==document.activeElement)notesEl.value=att.notes||'';
+}
+
+function exportReport(){
+  const s=cur();if(!s){showToast('請先建立場次');return;}
+  const att=s.attendance||{members:[],eggCount:0,notes:''};
+  const members=att.members;
+  const total=members.length;
+  const present=members.filter(m=>m.status==='present').length;
+  const absent=members.filter(m=>m.status==='absent').length;
+  const spoke=members.filter(m=>m.spoke).length;
+  const egg=att.eggCount||0;
+  const attRate=total?Math.round(present/total*100):0;
+  const spokeRate=present?Math.round(spoke/present*100):0;
+  const eggRate=present?Math.round(egg/present*100):0;
+  const absentNames=members.filter(m=>m.status==='absent').map(m=>m.name).join('、')||'無';
+  const spokeNames=members.filter(m=>m.spoke).map(m=>m.name).join('、')||'無';
+  const now=new Date();
+  const dateStr=`${now.getFullYear()}.${pad(now.getMonth()+1)}.${pad(now.getDate())}`;
+
+  const html=`<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8">
+<title>${s.name} 活動報告</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans TC','Microsoft JhengHei',sans-serif;background:#fff;color:#1a1a1a;padding:32px;max-width:800px;margin:0 auto;}
+.header{text-align:center;margin-bottom:32px;border-bottom:3px solid #D4A569;padding-bottom:20px;}
+.header-sub{font-size:12px;color:#888;margin-bottom:6px;letter-spacing:2px;text-transform:uppercase;}
+.header-title{font-size:24px;font-weight:700;color:#1F1611;margin-bottom:4px;}
+.header-date{font-size:13px;color:#888;}
+.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px;}
+.kpi{background:#f9f5ee;border:1px solid #e8d9b8;border-radius:10px;padding:16px;text-align:center;}
+.kpi-num{font-size:36px;font-weight:700;margin-bottom:4px;}
+.kpi-label{font-size:11px;color:#888;letter-spacing:.5px;}
+.kpi.k1 .kpi-num{color:#D4A569;} .kpi.k2 .kpi-num{color:#1D9E75;}
+.kpi.k3 .kpi-num{color:#e05555;} .kpi.k4 .kpi-num{color:#7F77DD;}
+.kpi.k5 .kpi-num{color:#e0a030;} .kpi.k6 .kpi-num{color:#D4A569;}
+.section{margin-bottom:24px;}
+.section-title{font-size:12px;font-weight:700;color:#888;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #e8d9b8;}
+.bar-row{margin-bottom:10px;}
+.bar-label{display:flex;justify-content:space-between;font-size:12px;color:#555;margin-bottom:4px;}
+.bar-track{height:12px;background:#f0e8d8;border-radius:6px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:6px;}
+.bar-fill.p{background:#1D9E75;} .bar-fill.s{background:#7F77DD;} .bar-fill.e{background:#e0a030;}
+.info-row{display:flex;gap:8px;margin-bottom:6px;font-size:13px;}
+.info-label{color:#888;min-width:100px;}
+.info-val{color:#1a1a1a;font-weight:600;flex:1;}
+.notes-box{background:#f9f5ee;border:1px solid #e8d9b8;border-radius:8px;padding:14px;font-size:13px;color:#444;line-height:1.8;white-space:pre-wrap;}
+.footer{text-align:center;font-size:11px;color:#aaa;margin-top:32px;padding-top:16px;border-top:1px solid #eee;}
+@media print{body{padding:20px;}@page{margin:1.5cm;}}
+</style></head><body>
+<div class="header">
+  <div class="header-sub">G.R.A.C.E. Academy ｜ 活動執行報告</div>
+  <div class="header-title">${s.name}</div>
+  <div class="header-date">${s.dateStr||dateStr} ｜ 主題：${s.theme} ｜ 報告產出：${dateStr}</div>
+</div>
+<div class="kpi-grid">
+  <div class="kpi k1"><div class="kpi-num">${total}</div><div class="kpi-label">總報名</div></div>
+  <div class="kpi k2"><div class="kpi-num">${present}</div><div class="kpi-label">實際出席</div></div>
+  <div class="kpi k3"><div class="kpi-num">${absent}</div><div class="kpi-label">缺席</div></div>
+  <div class="kpi k4"><div class="kpi-num">${spoke}</div><div class="kpi-label">交流發言</div></div>
+  <div class="kpi k5"><div class="kpi-num">${egg}</div><div class="kpi-label">彩蛋下單</div></div>
+  <div class="kpi k6"><div class="kpi-num">${attRate}%</div><div class="kpi-label">出席率</div></div>
+</div>
+<div class="section">
+  <div class="section-title">轉換率分析</div>
+  <div class="bar-row"><div class="bar-label"><span>出席率</span><span>${attRate}%（${present}／${total}人）</span></div><div class="bar-track"><div class="bar-fill p" style="width:${attRate}%"></div></div></div>
+  <div class="bar-row"><div class="bar-label"><span>交流發言率（佔出席）</span><span>${spokeRate}%（${spoke}／${present}人）</span></div><div class="bar-track"><div class="bar-fill s" style="width:${spokeRate}%"></div></div></div>
+  <div class="bar-row"><div class="bar-label"><span>彩蛋轉換率（佔出席）</span><span>${eggRate}%（${egg}／${present}人）</span></div><div class="bar-track"><div class="bar-fill e" style="width:${eggRate}%"></div></div></div>
+</div>
+<div class="section">
+  <div class="section-title">名單明細</div>
+  <div class="info-row"><div class="info-label">缺席學員</div><div class="info-val">${absentNames}</div></div>
+  <div class="info-row"><div class="info-label">交流發言</div><div class="info-val">${spokeNames}</div></div>
+</div>
+${att.notes?`<div class="section"><div class="section-title">助教備註</div><div class="notes-box">${att.notes.replace(/</g,'&lt;')}</div></div>`:''}
+<div class="footer">G.R.A.C.E. Academy ｜ 助教 G.R.A.C.E. 製作</div>
+</body></html>`;
+
+  const w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>w.print(),500);
+}
+
+// ═══════════════════════════════════
+// SESSION BUILDER
+// ═══════════════════════════════════
+const phaseMap={pre1:'pre',pre2:'pre',pre3:'pre',pre4:'pre',open1:'open',open2:'open',sh1:'share',sh2:'share',sh3:'share',ex1:'ex',ex2:'ex',end1:'end',end2:'end',end3:'end',end4:'end',end5:'end'};
+const phaseLineColor={pre:'var(--ph-pre-color)',open:'var(--ph-open-color)',share:'var(--ph-share-color)',ex:'var(--ph-ex-color)',end:'var(--ph-end-color)'};
+
+function buildSession(name,theme,dateStr,speakers,tmap){
+  const sp=speakers.length?speakers:['學姊一','學姊二','學姊三'];
+  const spLine=sp.map(s=>`・${s}｜${tmap[s]||''}`).join('\n');
+  const nodes=[
+    {id:'pre1',section:'前置準備',timeMin:16*60,timeLabel:'16:00',title:'智囊站下午公告',dur:'發佈至【Sampler 智囊站】',dot:'amber',badges:[{t:'announce',l:'《公告發布》Sampler 會議提醒'}],bullets:[],hasTimer:false,timerMin:10,blocks:[{id:'b_ann1',type:'copy',label:'一鍵複製｜下午提醒公告',key:'announce_afternoon'}]},
+    {id:'pre2',section:null,timeMin:19*60,timeLabel:'19:00',title:'主講者入場・設備測試',dur:'19:00 — 19:30 ／ 30 min',dot:'gray',badges:[{t:'host',l:'《開口主持》設備確認'}],bullets:['僅主講者進入，聆聽學姊留在等候室','逐一確認麥克風、視訊畫面、指定背景圖','提示可截圖簡報封面發限動，標記 @grace.wwwwwwww 及 @g.r.a.c.e_official'],hasTimer:false,timerMin:30,blocks:[]},
+    {id:'pre3',section:null,timeMin:19*60+30,timeLabel:'19:30',title:'智囊站入場提醒公告',dur:'發佈至【Sampler 智囊站】',dot:'amber',badges:[{t:'announce',l:'《公告發布》Sampler 會議啟動提醒'}],bullets:[],hasTimer:false,timerMin:10,blocks:[{id:'b_ann2',type:'copy',label:'一鍵複製｜入場提醒公告',key:'announce_enter'}]},
+    {id:'pre4',section:null,timeMin:19*60+30,timeLabel:'19:30',title:'聆聽學姊入場・點名',dur:'19:30 — 19:59 ／ 29 min',dot:'purple',badges:[{t:'host',l:'《開口主持》點名確認'}],bullets:['逐一點名：點到名字 → 舉手 + 開麥說一句話','視訊背景未換者直接點名，無回應則私訊官方 LINE','提示截圖限動（課程開始前最後機會）'],hasTimer:false,timerMin:29,blocks:[]},
+    {id:'open1',section:'正式開始',timeMin:20*60,timeLabel:'20:00',title:'助教開場宣告',dur:'約 1 min',dot:'purple',badges:[{t:'host',l:'《開口主持》全員到齊後宣讀注意事項'},{t:'host',l:'《開口主持》宣告開始・交棒校長'}],bullets:[],hasTimer:false,timerMin:2,blocks:[{id:'b_open',type:'host',label:'口稿｜開場宣告',key:'script_open'}]},
+    {id:'open2',section:null,timeMin:20*60+1,timeLabel:'20:01',title:'校長開場',dur:'約 2 min',dot:'teal',badges:[{t:'watch',l:'《旁聽待機》校長開場'}],bullets:['助教靜候'],hasTimer:false,timerMin:2,blocks:[]},
+    {id:'sh1',section:'學姊分享',timeMin:20*60+3,timeLabel:'20:03',title:`① ${sp[0]} 分享（${tmap[sp[0]]||''}）`,dur:'約 10 min',dot:'amber',badges:[{t:'chat',l:`《留言互動》歡迎 ${sp[0]} 上場`},{t:'chat',l:'《留言互動》提醒準備問題'},{t:'timer-badge',l:'《計時提醒》接近 10 分鐘提醒下一位'}],bullets:[],hasTimer:true,timerMin:10,blocks:[{id:'b_sh1w',type:'chat',label:`留言區｜歡迎 ${sp[0]}`,key:'chat_share_0'},{id:'b_sh1p',type:'chat',label:'留言區｜提醒準備問題',key:'chat_prepare_q'},{id:'b_sh1r',type:'royal',label:`皇家至尊社群｜提醒 ${sp[1]||'下一位'} 準備`,key:'royal_next_1'}]},
+    {id:'sh2',section:null,timeMin:20*60+13,timeLabel:'20:13',title:`② ${sp[1]} 分享（${tmap[sp[1]]||''}）`,dur:'約 10 min',dot:'amber',badges:[{t:'chat',l:`《留言互動》歡迎 ${sp[1]} 上場`},{t:'chat',l:'《留言互動》提醒準備問題'},{t:'timer-badge',l:'《計時提醒》接近 10 分鐘提醒下一位'}],bullets:[],hasTimer:true,timerMin:10,blocks:[{id:'b_sh2w',type:'chat',label:`留言區｜歡迎 ${sp[1]}`,key:'chat_share_1'},{id:'b_sh2p',type:'chat',label:'留言區｜提醒準備問題',key:'chat_prepare_q2'},{id:'b_sh2r',type:'royal',label:`皇家至尊社群｜提醒 ${sp[2]||'下一位'} 準備`,key:'royal_next_2'}]},
+    {id:'sh3',section:null,timeMin:20*60+23,timeLabel:'20:23',title:`③ ${sp[2]} 分享（${tmap[sp[2]]||''}）`,dur:'約 10 min',dot:'amber',badges:[{t:'chat',l:`《留言互動》歡迎 ${sp[2]} 上場`},{t:'chat',l:'《留言互動》提醒交流即將開始'},{t:'timer-badge',l:'《計時提醒》超時提示'}],bullets:[],hasTimer:true,timerMin:10,blocks:[{id:'b_sh3w',type:'chat',label:`留言區｜歡迎 ${sp[2]}`,key:'chat_share_2'},{id:'b_sh3s',type:'chat',label:'留言區｜交流即將開始',key:'chat_exchange_soon'}]},
+    {id:'ex1',section:'交流環節',timeMin:20*60+33,timeLabel:'20:33',title:'助教引導交流開始',dur:'約 1 min',dot:'coral',badges:[{t:'host',l:'《開口主持》引導交流說明'},{t:'chat',l:'《留言互動》發佈交流開始提示'}],bullets:[],hasTimer:false,timerMin:5,blocks:[{id:'b_ex1s',type:'host',label:'口稿｜交流引導詞',key:'script_exchange'},{id:'b_ex1c',type:'chat',label:'留言區｜交流開始提示',key:'chat_exchange_start'}]},
+    {id:'ex2',section:null,timeMin:20*60+34,timeLabel:'20:34',title:'交流進行中',dur:'約 40 — 50 min',dot:'coral',badges:[{t:'host',l:'《開口主持》依序開放舉手學姊'},{t:'chat',l:'《留言互動》中場倒數提醒'},{t:'host',l:'《開口主持》若無人舉手：點名備用問題'}],bullets:[],hasTimer:false,timerMin:50,blocks:[{id:'b_ex2r',type:'chat',label:'留言區｜交流倒數提醒',key:'chat_exchange_remind'},{id:'b_ex2b',type:'host',label:'口稿｜備用點名問題',key:'script_backup_q'}]},
+    {id:'end1',section:'收尾',timeMin:21*60+20,timeLabel:'~21:20',title:'校長分享',dur:'約 20 min',dot:'teal',badges:[{t:'watch',l:'《旁聽待機》校長分享'}],bullets:['助教靜候'],hasTimer:false,timerMin:20,blocks:[]},
+    {id:'end2',section:null,timeMin:21*60+40,timeLabel:'~21:40',title:'彩蛋公告',dur:'校長公告，助教留言配合',dot:'coral',badges:[{t:'chat',l:'《留言互動》貼出彩蛋公告'},{t:'chat',l:'《留言互動》補充截止提醒'}],bullets:[],hasTimer:false,timerMin:5,blocks:[{id:'b_egg',type:'copy',label:'一鍵複製｜彩蛋公告（留言區貼）',key:'copy_egg'},{id:'b_eggf',type:'chat',label:'留言區｜彩蛋截止補充',key:'chat_egg_followup'}]},
+    {id:'end3',section:null,timeMin:21*60+45,timeLabel:'~21:45',title:'下一場預告',dur:'校長公告',dot:'teal',badges:[{t:'chat',l:'《留言互動》下一場預告'}],bullets:[],hasTimer:false,timerMin:5,blocks:[{id:'b_nxt',type:'chat',label:'留言區｜下一場預告',key:'chat_next_event'}]},
+    {id:'end4',section:null,timeMin:21*60+50,timeLabel:'~21:50',title:'回放公告',dur:'校長公告',dot:'teal',badges:[{t:'chat',l:'《留言互動》回放資訊'}],bullets:[],hasTimer:false,timerMin:5,blocks:[{id:'b_rpl',type:'chat',label:'留言區｜回放資訊',key:'chat_replay'}]},
+    {id:'end5',section:null,timeMin:21*60+55,timeLabel:'~21:55',title:'大合照・結束',dur:'約 5 min',dot:'gold',badges:[{t:'photo',l:'《大合照》喊倒數截圖，發至智囊站'},{t:'host',l:'《開口主持》散場提醒（含回放）'}],bullets:[],hasTimer:false,timerMin:5,blocks:[{id:'b_photo',type:'host',label:'口稿｜大合照喊話',key:'script_photo'},{id:'b_close',type:'host',label:'口稿｜散場提醒',key:'script_close'}]},
+  ];
+  const texts=buildTexts(theme,sp,tmap,spLine);
+  const checklist=buildChecklist();
+  return{id:Date.now().toString(),name,theme,dateStr,speakers:sp,tmap,nodes,texts,checklist,checkState:{},attendance:{members:[],eggCount:0,notes:''}};
+}
+
+function buildTexts(theme,sp,tmap,spLine){
+  return{
+    announce_afternoon:`📣【今晚提醒｜季度深談日・${theme}】\n\n今晚 20:00 準時開始！\n還沒測試 Zoom 設備的學姊，記得先完成設備測試✅\n會議連結已寄送至信箱，請確認收件匣或垃圾信件📩`,
+    announce_enter:`📣【季度深談日・${theme}｜現在可以進入會議囉】\n\nZoom 等候室已開放，請進入等候，助教會逐一放行 🙏\n請確認：\n▸ 麥克風與耳機正常\n▸ 視訊背景已更換為指定背景圖\n▸ 網路穩定`,
+    script_open:`好，學姊們大家好，我是助教 G.R.A.C.E.，歡迎大家來到今晚的【季度深談日・${theme}】。\n\n我們先做一下點名，點到名字的學姊幫我按舉手功能，然後開麥克風說一句話讓我確認一下。\n\n（點名完畢，確認全員到齊後）\n\n好，在正式開始前跟大家說幾件事：\n\n▸ 課程開始之後請不要使用錄音、錄影或任何截圖功能。若系統偵測到側錄，將立即取消未來所有課程參與資格並追究法律責任，請大家確實配合。\n▸ 發言時請先確認耳機跟網路穩定，避免回音與斷線。\n▸ 整場過程中請不要退出會議，退出後將不再開放重新入場。\n\n現在想截圖簡報封面發限動的學姊——這是最後機會，記得標記校長 @grace.wwwwwwww 跟官方 @g.r.a.c.e_official。課程開始後請停止截圖。\n\n好，現在是八點整，今晚的【季度深談日・${theme}】正式開始，進場通道關閉。\n\n今晚有三位皇家至尊學姊要與大家分享。大家在聆聽過程中，可以順便整理自己最近遇到的困擾，待會交流環節可以直接提問。\n\n把時間交給校長。`,
+    chat_share_0:`👏 接下來由 ${sp[0]} 學姊為大家分享\n主題：${tmap[sp[0]]||''}\n\n大家可以一邊聆聽，一邊整理自己最近的困擾\n待會交流環節可以直接跟學姊提問 💬`,
+    chat_share_1:`👏 接下來由 ${sp[1]} 學姊為大家分享\n主題：${tmap[sp[1]]||''}\n\n聽的過程中如果有問題，待會交流環節直接問學姊 💬`,
+    chat_share_2:`👏 最後一位，由 ${sp[2]} 學姊為大家分享\n主題：${tmap[sp[2]]||''}\n\n有問題的學姊可以開始整理思路，交流環節馬上開始 💬`,
+    chat_prepare_q:`💬 大家可以一邊聆聽，一邊整理自己最近的困擾\n待會交流環節可以直接跟學姊提問`,
+    chat_prepare_q2:`💬 聽的過程中如果有問題，待會交流環節直接問學姊`,
+    chat_exchange_soon:`💬 三位學姊分享即將結束\n有問題的學姊可以開始整理思路，交流環節馬上開始`,
+    royal_next_1:`📢 提醒 ${sp[1]||'下一位學姊'}，下一棒快到了，請準備好 🙏`,
+    royal_next_2:`📢 提醒 ${sp[2]||'下一位學姊'}，最後一棒是你，請準備好 🙏`,
+    script_exchange:`好，三位學姊分享完畢，謝謝三位。\n\n接下來進入今天的交流環節。\n\n想要提問或分享的學姊，請按下舉手功能，我會依序開放麥克風。\n\n發言的時候，可以先說一下你想跟哪位學姊交流——\n${spLine}\n——然後帶一下你的名字跟相關背景，讓學姊比較好接。\n\n這種能公開提問的場合很難得，有問題的學姊不要客氣，把握今晚的機會。`,
+    chat_exchange_start:`🙋 交流環節正式開始！\n\n想提問或分享的學姊，請按舉手功能\n助教依序開放麥克風\n\n發言時請先說：\n① 你想跟哪位學姊交流（${sp.join('・')}）\n② 你的名字與簡單背景`,
+    chat_exchange_remind:`⏰ 交流到 21:20 左右\n想跟學姊交流的學姊要把握機會 🙋`,
+    script_backup_q:`（若無人舉手，擇一投出）\n\n問法一：\n「聽完三位學姊的分享，有沒有哪個部分讓大家特別有感？歡迎直接說。」\n\n問法二：\n「有沒有學姊想跟 ${sp[0]} 學姊交流？或者最近自己也有類似狀況想分享的？」\n\n問法三：\n「今天的主題是【${theme}】，有沒有哪位學姊最近在這方面有特別的困擾，想借這個機會交流一下？」`,
+    copy_egg:`🎁【今晚限定彩蛋】\n\n官網現正開放 ＄88,000 小額儲值單位\n✅ 儲值 88,000 元送 8,000 點\n✅ 每人最多下單 4 次\n✅ 可任選官網 10 種諮詢項目\n✅ 不限會員級別皆可下單（平常僅限至尊級以上）\n\n⏰ 限今晚 2026.06.10 20:00 — 23:59`,
+    chat_egg_followup:`⏰ 今晚 23:59 前下單有效！\n有問題的學姊直接敲官方 LINE\n助教陪你到 23:59 🙌`,
+    chat_next_event:`📅 下一場季度深談日\n2026.09.20 ｜【SAMPLER 智囊站】LIVE TALK\n記得關注！`,
+    chat_replay:`🎬 今天的回放\n2026.06.13 22:00 前上架至 SAMPLER 平台\n附重點筆記一份，可觀看至 2026.12.31 年底`,
+    script_photo:`好，最後大家一起來一張大合照！\n請把視訊打開，鏡頭對準自己——準備好了嗎？\n3、2、1！`,
+    script_close:`好，今天的季度深談日到這裡告一段落。\n\n感謝三位皇家至尊學姊的精彩分享——\n${spLine}\n\n也謝謝今晚所有參與交流的學姊。\n\n最後提醒大家兩件事：\n\n第一，今天的回放會在 2026.06.13 22:00 前上架到 SAMPLER 平台，附一份重點筆記，回放可以觀看到 2026.12.31 年底。\n\n第二，今晚的彩蛋下單到 23:59 截止，有需要的學姊把握機會，有問題直接敲官方 LINE，我會在線到 23:59。\n\n大家晚安！`,
+  };
+}
+
+function buildChecklist(){
+  return{
+    before:[
+      {id:'c1',time:'當天中午前',text:'確認五位主講者都收到會議連結'},
+      {id:'c2',time:'當天中午前',text:'確認指定背景圖已發送給所有學姊'},
+      {id:'c3',time:'16:00',text:'發佈下午提醒公告至【Sampler 智囊站】'},
+      {id:'c4',time:'19:00',text:'提前登入 Zoom，確認主持人權限正常'},
+      {id:'c5',time:'19:00',text:'開放主講者入場，開始設備測試'},
+      {id:'c6',time:'19:30',text:'發佈入場提醒公告至【Sampler 智囊站】'},
+      {id:'c7',time:'19:30',text:'開放聆聽學姊進入等候室，開始點名'},
+    ],
+    during:[
+      {id:'c8',time:'20:00',text:'關閉進場通道'},
+      {id:'c9',time:'分享中',text:'計時每位學姊，接近 10 分鐘於皇家至尊社群提醒下一位準備'},
+      {id:'c10',time:'交流中',text:'依序放行舉手學姊，開放麥克風'},
+      {id:'c11',time:'~21:55',text:'喊倒數截圖大合照，發至【Sampler 智囊站】'},
+    ],
+    after:[
+      {id:'c12',time:'22:00 後',text:'在智囊站發大合照，附彩蛋 23:59 截止提醒'},
+      {id:'c13',time:'23:59 前',text:'持續待機官方 LINE，追蹤彩蛋下單問題'},
+      {id:'c14',time:'06.13 前',text:'確認回放上架時間（2026.06.13 22:00 前）'},
+      {id:'c15',time:'06.13',text:'確認回放上架後，在智囊站發佈通知'},
+    ],
+  };
+}
+
+// ═══════════════════════════════════
+// RENDER TIMELINE
+// ═══════════════════════════════════
+const nowMin=()=>{const n=new Date();return n.getHours()*60+n.getMinutes();};
+const badgeCls={announce:'ab-announce',host:'ab-host',chat:'ab-chat',watch:'ab-watch','timer-badge':'ab-timer-badge',royal:'ab-royal',photo:'ab-photo'};
+const blCls={host:'abl-host',chat:'abl-chat',copy:'abl-copy',royal:'abl-royal'};
+
+function renderTimeline(){
+  const s=cur();
+  const container=document.getElementById('timeline-container');
+  if(!s){container.innerHTML='<div class="no-session"><div style="font-size:14px;margin-bottom:14px">還沒有場次</div><button class="btn btn-gold" onclick="switchTab(\'setup\')">建立場次</button></div>';return;}
+  const nm=nowMin();
+  let activeIdx=-1;
+  s.nodes.forEach((n,i)=>{const nxt=i+1<s.nodes.length?s.nodes[i+1].timeMin:24*60;if(nm>=n.timeMin&&nm<nxt)activeIdx=i;});
+
+  let html='',lastSec='';
+  s.nodes.forEach((node,idx)=>{
+    const phase=phaseMap[node.id]||'pre';
+    if(node.section&&node.section!==lastSec){html+='<div class="tl-section-label" data-phase="'+phase+'">&#9658; '+node.section+'</div>';lastSec=node.section;}
+    const isActive=idx===activeIdx,isPast=idx<activeIdx;
+    const nodeCompleted=!!(s.checkState['node_done_'+node.id]);
+    let cc='tl-content';
+    if(isActive)cc+=' is-active';
+    else if(isPast)cc+=' is-past';
+    if(nodeCompleted)cc+=' node-completed';
+
+    const badgesHtml=node.badges.map(b=>'<span class="abadge '+(badgeCls[b.t]||'')+'">'+b.l+'</span>').join('');
+    const bulletsHtml=node.bullets.length?'<ul class="tl-bullets">'+node.bullets.map(b=>'<li>'+b+'</li>').join('')+'</ul>':'';
+
+    let timerHtml='';
+    if(node.hasTimer){
+      const t=segTimers[node.id],running=!!t;
+      const elapsed=running?Math.floor((Date.now()-t.startEpoch)/1000):0;
+      const em=Math.floor(elapsed/60),es=elapsed%60;
+      const over=running&&elapsed>(node.timerMin||10)*60;
+      const dispVal=running?(pad(em)+':'+pad(es)):'00:00';
+      timerHtml='<div class="seg-timer'+(running&&!over?' running':'')+(over?' overtime':'')+'" id="st-box-'+node.id+'">'
+        +'<div class="seg-time-display" id="st-disp-'+node.id+'" style="color:'+(over?'var(--red)':'var(--gilded)')+'">'+dispVal+'</div>'
+        +'<div style="flex:1"><div class="seg-timer-label">分享計時器</div>'
+        +'<div class="seg-timer-limit'+(over?' overtime-flash':'')+'" id="st-limit-'+node.id+'">預計 '+node.timerMin+' 分鐘'+(over?' &#9888; 已超時':'')+'</div></div>'
+        +'<div class="seg-timer-controls">'
+        +'<span class="seg-adj-label">從</span>'
+        +'<input class="seg-adj" id="st-adj-'+node.id+'" placeholder="分:秒">'
+        +'<button class="btn btn-green" id="st-start-'+node.id+'" onclick="segStart(\''+node.id+'\')" '+(running?'disabled':'')+' style="font-size:11px;padding:4px 10px">'+(running?'計時中…':'開始')+'</button>'
+        +'<button class="btn" id="st-stop-'+node.id+'" onclick="segStop(\''+node.id+'\')" style="font-size:11px;padding:4px 10px;display:'+(running?'inline-block':'none')+'">暫停</button>'
+        +'<button class="btn" onclick="segSetManual(\''+node.id+'\')" style="font-size:11px;padding:4px 10px">套用</button>'
+        +'<button class="btn btn-red" onclick="segReset(\''+node.id+'\')" style="font-size:11px;padding:4px 10px">重置</button>'
+        +'</div></div>';
+    }
+
+    const blocksHtml=node.blocks.map(function(bl,bi){
+      const uid=node.id+'_'+bi;
+      blockTextMap[uid]=s.texts[bl.key]||'';
+      const txt=blockTextMap[uid];
+      const doneKey='done_'+node.id+'_'+bi;
+      const isDone=!!(s.checkState[doneKey]);
+      const doneStyle=isDone?'opacity:0.45;':'';
+      const doneMark=isDone?' <span style="color:var(--green)">✓</span>':'';
+
+      if(bl.type==='copy'||bl.type==='chat'||bl.type==='royal'){
+        const cls=bl.type==='copy'?'exposed':bl.type==='chat'?'exposed-chat':'exposed-royal';
+        const btnCls=bl.type==='copy'?'exposed-copy-btn':bl.type==='chat'?'exposed-chat-btn':'exposed-royal-btn';
+        const labelCls=bl.type==='copy'?'abl-copy':bl.type==='chat'?'abl-chat':'abl-royal';
+        return '<div class="action-block '+cls+'" id="ab_'+uid+'" style="'+doneStyle+'">'
+          +'<div class="action-block-header" onclick="toggleBlock(\'ab_'+uid+'\')">'
+          +'<span class="exposed-label '+labelCls+'">'+bl.label+doneMark+'</span>'
+          +'<div style="display:flex;gap:6px;align-items:center;flex-shrink:0" onclick="event.stopPropagation()">'
+          +'<button class="'+btnCls+'" onclick="copyBlock(\''+uid+'\',this)">複製</button>'
+          +'<button class="done-btn'+(isDone?' done-active':'')+'" onclick="toggleDone(\''+doneKey+'\')" title="標記完成">✓</button>'
+          +'<span class="ach">&#9660;</span>'
+          +'</div></div>'
+          +'<div class="action-body"><div class="action-text">'+esc(txt)+'</div></div>'
+          +'</div>';
+      }
+      return '<div class="action-block" id="ab_'+uid+'" style="'+doneStyle+'">'
+        +'<div class="action-block-header" onclick="toggleBlock(\'ab_'+uid+'\')">'
+        +'<span class="abl '+(blCls[bl.type]||'')+'">'+bl.label+doneMark+'</span>'
+        +'<div style="display:flex;gap:6px;align-items:center;flex-shrink:0" onclick="event.stopPropagation()">'
+        +'<button class="done-btn'+(isDone?' done-active':'')+'" onclick="toggleDone(\''+doneKey+'\')" title="標記完成">✓</button>'
+        +'<span class="ach">&#9660;</span>'
+        +'</div></div>'
+        +'<div class="action-body">'
+        +'<div class="action-text">'+esc(txt)+'</div>'
+        +'<button class="copy-btn" onclick="copyBlock(\''+uid+'\',this)">複製口稿</button>'
+        +'</div></div>';
+    }).join('');
+
+    html+='<div class="tl-item">'
+      +'<div class="tl-time"><span class="tl-time-label" style="color:'+(phaseLineColor[phase]||'var(--text-secondary)')+'">'+node.timeLabel+'</span></div>'
+      +'<div class="tl-track"><div class="tl-dot '+node.dot+'"></div><div class="tl-line" style="background:'+phaseLineColor[phase]+'33"></div></div>'
+      +'<div class="'+cc+'" data-phase="'+phase+'">'
+      +'<div class="node-header">'
+      +'<div class="node-header-left">'
+      +'<div class="action-badges">'+badgesHtml+'</div>'
+      +'<div class="tl-title">'+node.title+(isActive?'<span class="badge-active">NOW</span>':'')+'</div>'
+      +'<div class="tl-dur">'+node.dur+'</div>'
+      +'</div>'
+      +'<button class="node-done-btn'+(nodeCompleted?' active':'')+'" onclick="toggleNodeDone(\''+node.id+'\')">'+(nodeCompleted?'✓ 完成':'○ 完成')+'</button>'
+      +'</div>'
+      +bulletsHtml+timerHtml
+      +(blocksHtml?'<div class="action-blocks">'+blocksHtml+'</div>':'')
+      +'</div></div>';
+  });
+
+  container.innerHTML=html;
+  if(activeIdx>=0)setTimeout(function(){var el=container.querySelector('.is-active');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},80);
+  var next=activeIdx>=0&&activeIdx+1<s.nodes.length?s.nodes[activeIdx+1]:null;
+  document.getElementById('live-next').innerHTML=next?'下一段<strong>'+next.timeLabel+' '+next.title+'</strong>':'<strong>場次進行中</strong>';
+}
+
+function renderChecklist(){
+  const s=cur();const c=document.getElementById('checklist-container');
+  if(!s){c.innerHTML='<div class="no-session"><div style="font-size:12px">請先建立場次</div></div>';return;}
+  const groups=[{key:'before',title:'前置作業'},{key:'during',title:'場中確認'},{key:'after',title:'會後作業'}];
+  c.innerHTML=groups.map(function(g){
+    const items=s.checklist[g.key]||[];
+    return '<div class="check-group"><div class="check-group-title">&#9658; '+g.title+'</div>'
+      +items.map(function(item){const done=s.checkState[item.id]||false;
+        return '<div class="check-item '+(done?'done':'')+'" onclick="toggleCheck(\''+item.id+'\')">'
+          +'<div class="check-box"><span class="check-tick">✓</span></div>'
+          +'<div><div class="check-time">'+item.time+'</div><div class="check-text">'+item.text+'</div></div>'
+          +'</div>';}).join('')+'</div>';}).join('');
+}
+
+function renderEdit(){
+  const s=cur();
+  document.getElementById('edit-session-name').textContent=s?s.name:'（無場次）';
+  const c=document.getElementById('edit-container');if(!s){c.innerHTML='';return;}
+  const groups=[
+    {title:'前置公告',keys:['announce_afternoon','announce_enter']},
+    {title:'口稿',keys:['script_open','script_exchange','script_backup_q','script_photo','script_close']},
+    {title:'留言區文字',keys:Object.keys(s.texts).filter(function(k){return k.startsWith('chat_');})},
+    {title:'皇家至尊社群',keys:Object.keys(s.texts).filter(function(k){return k.startsWith('royal_');})},
+    {title:'彩蛋公告',keys:['copy_egg']},
+  ];
+  const labels={
+    announce_afternoon:'下午提醒公告（16:00）',announce_enter:'入場提醒公告（19:30）',
+    script_open:'開場宣告口稿',script_exchange:'交流引導詞口稿',script_backup_q:'備用點名問題',
+    script_photo:'大合照喊話',script_close:'散場提醒口稿',
+    chat_share_0:'留言｜歡迎 '+s.speakers[0]+' 分享',
+    chat_share_1:'留言｜歡迎 '+s.speakers[1]+' 分享',
+    chat_share_2:'留言｜歡迎 '+s.speakers[2]+' 分享',
+    chat_prepare_q:'留言｜提醒準備問題（第一位）',chat_prepare_q2:'留言｜提醒準備問題（第二位）',
+    chat_exchange_soon:'留言｜交流即將開始',chat_exchange_start:'留言｜交流開始提示',
+    chat_exchange_remind:'留言｜交流倒數提醒',chat_egg_followup:'留言｜彩蛋截止補充',
+    chat_next_event:'留言｜下一場預告',chat_replay:'留言｜回放資訊',
+    royal_next_1:'皇家至尊社群｜提醒 '+s.speakers[1]+' 準備',
+    royal_next_2:'皇家至尊社群｜提醒 '+s.speakers[2]+' 準備',
+    copy_egg:'彩蛋公告文字',
+  };
+  c.innerHTML=groups.map(function(g){
+    const valid=g.keys.filter(function(k){return s.texts[k]!==undefined;});if(!valid.length)return'';
+    return '<div class="edit-section"><div class="edit-section-title">'+g.title+'</div>'
+      +valid.map(function(k){return '<div class="edit-item"><div class="edit-label">'+(labels[k]||k)+'</div>'
+        +'<textarea class="edit-input tall" data-key="'+k+'" oninput="autoH(this)">'+esc(s.texts[k]||'')+'</textarea></div>';}).join('')+'</div>';
+  }).join('');
+  setTimeout(autoHAll,30);
+}
+
+function renderSetup(){
+  const c=document.getElementById('session-list');
+  if(!state.sessions.length){c.innerHTML='';return;}
+  c.innerHTML='<div class="edit-section"><div class="edit-section-title">已建立的場次</div>'
+    +state.sessions.map(function(s){const isCur=s.id===state.currentId;
+      return '<div class="session-row"><div style="flex:1"><div class="sr-name '+(isCur?'cur':'')+'">'+s.name+(isCur?' ✦':'')+'</div>'
+        +'<div class="sr-sub">'+s.dateStr+' ｜ '+s.theme+'</div></div>'
+        +'<div style="display:flex;gap:6px">'+(isCur?'':'<button class="btn" onclick="switchSession(\''+s.id+'\')">切換</button>')
+        +'<button class="btn btn-red" onclick="deleteSession(\''+s.id+'\')">刪除</button></div></div>';
+    }).join('')+'</div>';
+}
+
+function toggleBlock(id){document.getElementById(id)&&document.getElementById(id).classList.toggle('open');}
+function toggleCheck(id){const s=cur();if(!s)return;s.checkState[id]=!s.checkState[id];save();renderChecklist();}
+
+function saveEdits(){
+  const s=cur();if(!s)return;
+  document.querySelectorAll('#edit-container textarea[data-key]').forEach(function(el){s.texts[el.dataset.key]=el.value;});
+  save();renderTimeline();showToast('已儲存');switchTab('live');
+}
+
+function createSession(){
+  const name=document.getElementById('s-name').value.trim()||'新場次';
+  const theme=document.getElementById('s-theme').value.trim()||'主題';
+  const dateStr=document.getElementById('s-date').value||'';
+  const spRaw=document.getElementById('s-speakers').value.trim();
+  const tmRaw=document.getElementById('s-topics').value.trim();
+  const speakers=spRaw?spRaw.split(',').map(function(x){return x.trim();}).filter(Boolean):[];
+  const tmap={};
+  tmRaw.split(',').forEach(function(p){const kv=p.split(':');if(kv[0]&&kv[1])tmap[kv[0].trim()]=kv[1].trim();});
+  const s=buildSession(name,theme,dateStr,speakers,tmap);
+  state.sessions.unshift(s);state.currentId=s.id;save();showToast('場次建立成功！');switchTab('live');
+}
+
+function switchSession(id){state.currentId=id;save();renderAll();switchTab('live');}
+
+function deleteSession(id){
+  if(!confirm('確定刪除這個場次？'))return;
+  state.sessions=state.sessions.filter(function(s){return s.id!==id;});
+  if(state.currentId===id)state.currentId=(state.sessions[0]&&state.sessions[0].id)||null;
+  save();renderAll();
+}
+
+function exportData(){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));
+  a.download='grace_場控備份_'+new Date().toISOString().slice(0,10)+'.json';a.click();
+}
+
+function importData(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=function(ev){try{state=JSON.parse(ev.target.result);save();renderAll();showToast('匯入成功');}catch(err){showToast('格式錯誤');}};
+  r.readAsText(f);e.target.value='';
+}
+
+function switchTab(t){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active');});
+  document.getElementById('page-'+t).classList.add('active');
+  document.getElementById('tab-'+t).classList.add('active');
+  if(t==='live')renderTimeline();
+  if(t==='checklist')renderChecklist();
+  if(t==='edit'){renderEdit();setTimeout(autoHAll,30);}
+  if(t==='setup')renderSetup();
+  if(t==='attendance')renderAttendance();
+  if(t==='report')renderReport();
+}
+
+function renderAll(){
+  const s=cur();
+  document.getElementById('topbar-sub').textContent=s?(s.dateStr+' ｜ '+s.theme):'尚未選擇場次';
+  renderTimeline();
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},2000);
+}
+
+function autoH(el){el.style.height='auto';el.style.height=(el.scrollHeight+6)+'px';}
+function autoHAll(){document.querySelectorAll('#edit-container .edit-input.tall').forEach(function(el){autoH(el);});}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function tick(){
+  const n=new Date();
+  const hh=pad(n.getHours()),mm=pad(n.getMinutes()),ss=pad(n.getSeconds());
+  document.getElementById('live-clock').textContent=hh+':'+mm+':'+ss;
+  document.getElementById('live-date').textContent=n.getFullYear()+'.'+pad(n.getMonth()+1)+'.'+pad(n.getDate())+' （'+'日一二三四五六'[n.getDay()]+'）';
+  if(ss==='00')renderTimeline();
+  mtTick();
+}
+
+function init(){
+  load();
+  const FID='grace_20260610_emotion';
+  let existing=state.sessions.find(function(s){return s.id===FID;});
+  if(!existing){
+    const s=buildSession('季度深談日・情緒的訊號學','情緒的訊號學','2026-06-10',['倪婍瑄','朱映蓉','黃又庭'],{'倪婍瑄':'內耗','朱映蓉':'自我懷疑','黃又庭':'憤怒'});
+    s.id=FID;state.sessions.unshift(s);existing=s;
+  }
+  if(!existing.nodes||!existing.nodes.length){
+    const fresh=buildSession(existing.name||'季度深談日・情緒的訊號學',existing.theme||'情緒的訊號學',existing.dateStr||'2026-06-10',existing.speakers||['倪婍瑄','朱映蓉','黃又庭'],existing.tmap||{'倪婍瑄':'內耗','朱映蓉':'自我懷疑','黃又庭':'憤怒'});
+    fresh.id=FID;
+    fresh.checkState=existing.checkState||{};
+    fresh.attendance=existing.attendance||{members:[],eggCount:0,notes:''};
+    const idx=state.sessions.findIndex(function(s){return s.id===FID;});
+    if(idx>=0)state.sessions[idx]=fresh;
+  }
+  state.currentId=FID;
+  save();
+  renderAll();tick();setInterval(tick,1000);
+}
+
+init();
+</script>
+</body>
+</html>
